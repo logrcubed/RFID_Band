@@ -14,6 +14,10 @@ http://www.smartcardchn.com/uploadfile/single/TK4100.pdf
 5. you may want to make some changes to their code like I did - by adding a few decorators for the managed dll we are going to use
 6. Copy that dll into your executing code folder so that code can find it.
 
+You may want to download and install Microsoft Visual C++ 2005 Redistributable Package (x86)
+https://www.microsoft.com/en-in/download/details.aspx?id=3387
+to ensure that you are able to develop in a Win 10 x64 machine.
+
 Good to go I suppose.
 
 
