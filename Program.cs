@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO.Ports;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Management;
+
 
 namespace RFID_USBCode
 {
@@ -14,8 +13,27 @@ namespace RFID_USBCode
         
         public static void Main()
         {
+            // Get a list of serial port names.
+            string[] ports = SerialPort.GetPortNames();
 
-            if (LFReader.gOpenReader("com4", 38400, 0))
+
+            Console.WriteLine("The following serial ports were found:");
+
+            string portName = string.Empty;
+
+            foreach (COMPortInfo comPort in COMPortInfo.GetCOMPortsInfo())
+            {
+                Console.WriteLine(string.Format("{0} – {1}", comPort.Name, comPort.Description));
+                if (IsProlificPort(comPort, "Prolific"))
+                {
+                    portName = comPort.Name;
+                    break;
+                }
+            }
+
+            Console.ReadLine();
+
+            if (LFReader.gOpenReader(portName, 38400, 0))
             {
                 Console.WriteLine("1->Open Reader");
                 LFReader.gSetBeep(50, 0);//beep 50 millisecond
@@ -41,6 +59,77 @@ namespace RFID_USBCode
             }
             Console.ReadLine();
         }
+        private static bool IsProlificPort(COMPortInfo comPort, string driverName)
+        {
+            return comPort.Description.Contains(driverName);
+        }
+
+        internal class ProcessConnection
+        {
+
+            public static ConnectionOptions ProcessConnectionOptions()
+            {
+                ConnectionOptions options = new ConnectionOptions();
+                options.Impersonation = ImpersonationLevel.Impersonate;
+                options.Authentication = AuthenticationLevel.Default;
+                options.EnablePrivileges = true;
+                return options;
+            }
+
+            public static ManagementScope ConnectionScope(string machineName, ConnectionOptions options, string path)
+            {
+                ManagementScope connectScope = new ManagementScope();
+                connectScope.Path = new ManagementPath(@"\\" + machineName + path);
+                connectScope.Options = options;
+                connectScope.Connect();
+                return connectScope;
+            }
+        }
+
+        public class COMPortInfo
+        {
+            public string Name { get; set; }
+            public string Description { get; set; }
+
+            public COMPortInfo() { }
+
+            public static List<COMPortInfo> GetCOMPortsInfo()
+            {
+                List<COMPortInfo> comPortInfoList = new List<COMPortInfo>();
+
+                ConnectionOptions options = ProcessConnection.ProcessConnectionOptions();
+                ManagementScope connectionScope = ProcessConnection.ConnectionScope(Environment.MachineName, options, @"\root\CIMV2");
+
+                ObjectQuery objectQuery = new ObjectQuery("SELECT * FROM Win32_PnPEntity WHERE ConfigManagerErrorCode = 0");
+                ManagementObjectSearcher comPortSearcher = new ManagementObjectSearcher(connectionScope, objectQuery);
+
+                using (comPortSearcher)
+                {
+                    string caption = null;
+                    foreach (ManagementObject obj in comPortSearcher.Get())
+                    {
+                        if (obj != null)
+                        {
+                            object captionObj = obj["Caption"];
+                            if (captionObj != null)
+                            {
+                                caption = captionObj.ToString();
+                                if (caption.Contains("(COM"))
+                                {
+                                    COMPortInfo comPortInfo = new COMPortInfo();
+                                    comPortInfo.Name = caption.Substring(caption.LastIndexOf("(COM")).Replace("(", string.Empty).Replace(")",
+                                                                         string.Empty);
+                                    comPortInfo.Description = caption;
+                                    comPortInfoList.Add(comPortInfo);
+                                }
+                            }
+                        }
+                    }
+                }
+                return comPortInfoList;
+            }
+        }
+
 
         class LFReader
         {
