@@ -2,7 +2,7 @@
 A simple C# / .NET library code to connect with Chafon RFID writer / reader - LHF and retrieving TK4100 tag values
 
 Chafon reference code is available for free download here
-http://www.smartcardchn.com/uploadfile/single/TK4100.pdf
+http://www.chafon.com/DownLoad.aspx?page=1
 
 TK4100 specs are available here
 http://www.smartcardchn.com/uploadfile/single/TK4100.pdf
